@@ -52,22 +52,31 @@
     // Do nothing, as subviews are inserted by insertReactSubview:
 }
 
-- (void)releaseCachedPath
+- (void)clearChildCache
 {
     if (!rendered) {
         return;
     }
     rendered = false;
-    for (UIView *node in self.subviews) {
+    for (__kindof RNSVGNode *node in self.subviews) {
         if ([node isKindOfClass:[RNSVGNode class]]) {
-            RNSVGNode *n = (RNSVGNode *)node;
-            [n releaseCachedPath];
+            [node clearChildCache];
         }
-    };
+    }
 }
 
 - (void)invalidate
 {
+    UIView* parent = self.superview;
+    if ([parent isKindOfClass:[RNSVGNode class]]) {
+        if (!rendered) {
+            return;
+        }
+        RNSVGNode* svgNode = (RNSVGNode*)parent;
+        [svgNode invalidate];
+        rendered = false;
+        return;
+    }
     [self setNeedsDisplay];
 }
 
@@ -78,7 +87,7 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _minX = minX;
 }
 
@@ -89,7 +98,7 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _minY = minY;
 }
 
@@ -100,7 +109,7 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _vbWidth = vbWidth;
 }
 
@@ -111,29 +120,29 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _vbHeight = vbHeight;
 }
 
-- (void)setBbWidth:(NSString *)bbWidth
+- (void)setBbWidth:(RNSVGLength *)bbWidth
 {
-    if ([bbWidth isEqualToString:_bbWidth]) {
+    if ([bbWidth isEqualTo:_bbWidth]) {
         return;
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _bbWidth = bbWidth;
 }
 
-- (void)setBbHeight:(NSString *)bbHeight
+- (void)setBbHeight:(RNSVGLength *)bbHeight
 {
-    if ([bbHeight isEqualToString:_bbHeight]) {
+    if ([bbHeight isEqualTo:_bbHeight]) {
         return;
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _bbHeight = bbHeight;
 }
 
@@ -144,7 +153,7 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _align = align;
 }
 
@@ -155,21 +164,25 @@
     }
 
     [self invalidate];
-    [self releaseCachedPath];
+    [self clearChildCache];
     _meetOrSlice = meetOrSlice;
 }
 
 - (void)drawToContext:(CGContextRef)context withRect:(CGRect)rect {
-
+    rendered = true;
     self.initialCTM = CGContextGetCTM(context);
     self.invInitialCTM = CGAffineTransformInvert(self.initialCTM);
     if (self.align) {
-        _viewBoxTransform = [RNSVGViewBox getTransform:CGRectMake(self.minX, self.minY, self.vbWidth, self.vbHeight)
+        CGRect tRect = CGRectMake(self.minX, self.minY, self.vbWidth, self.vbHeight);
+        _viewBoxTransform = [RNSVGViewBox getTransform:tRect
                                                  eRect:rect
                                                  align:self.align
                                            meetOrSlice:self.meetOrSlice];
         _invviewBoxTransform = CGAffineTransformInvert(_viewBoxTransform);
         CGContextConcatCTM(context, _viewBoxTransform);
+    } else {
+        _viewBoxTransform = CGAffineTransformIdentity;
+        _invviewBoxTransform = CGAffineTransformIdentity;
     }
 
     for (UIView *node in self.subviews) {
@@ -223,8 +236,6 @@
 
         if (event) {
             node.active = NO;
-        } else if (node.active) {
-            return node;
         }
 
         UIView *hitChild = [node hitTest:transformed withEvent:event];
@@ -237,11 +248,26 @@
     return nil;
 }
 
-
 - (NSString *)getDataURL
 {
     UIGraphicsBeginImageContextWithOptions(_boundingBox.size, NO, 0);
+    [self clearChildCache];
     [self drawRect:_boundingBox];
+    [self clearChildCache];
+    [self invalidate];
+    NSData *imageData = UIImagePNGRepresentation(UIGraphicsGetImageFromCurrentImageContext());
+    NSString *base64 = [imageData base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength];
+    UIGraphicsEndImageContext();
+    return base64;
+}
+
+- (NSString *)getDataURLwithBounds:(CGRect)bounds
+{
+    UIGraphicsBeginImageContextWithOptions(bounds.size, NO, 0);
+    [self clearChildCache];
+    [self drawRect:bounds];
+    [self clearChildCache];
+    [self invalidate];
     NSData *imageData = UIImagePNGRepresentation(UIGraphicsGetImageFromCurrentImageContext());
     NSString *base64 = [imageData base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength];
     UIGraphicsEndImageContext();

@@ -34,11 +34,16 @@ extern CGFloat const RNSVG_DEFAULT_FONT_SIZE;
 @property (nonatomic, strong) NSString *filter;
 @property (nonatomic, assign) BOOL responsible;
 @property (nonatomic, assign) CGAffineTransform matrix;
+@property (nonatomic, assign) CGAffineTransform transforms;
 @property (nonatomic, assign) CGAffineTransform invmatrix;
 @property (nonatomic, assign) CGAffineTransform invTransform;
 @property (nonatomic, assign) BOOL active;
+@property (nonatomic, assign) BOOL dirty;
+@property (nonatomic, assign) BOOL merging;
 @property (nonatomic, assign) CGPathRef path;
+@property (nonatomic, assign) CGPathRef strokePath;
 @property (nonatomic, assign) CGRect clientRect;
+@property (nonatomic, assign) CGRect pathBounds;
 @property (nonatomic, copy) RCTDirectEventBlock onLayout;
 
 
@@ -112,6 +117,8 @@ extern CGFloat const RNSVG_DEFAULT_FONT_SIZE;
 
 - (void)traverseSubviews:(BOOL (^)(__kindof UIView *node))block;
 
-- (void)releaseCachedPath;
+- (void)clearChildCache;
+
+- (void)clearPath;
 
 @end

@@ -27,6 +27,14 @@ RCT_CUSTOM_VIEW_PROPERTY(usewidth, id, RNSVGUse)
 {
     view.width = [RCTConvert RNSVGLength:json];
 }
+RCT_CUSTOM_VIEW_PROPERTY(x, id, RNSVGUse)
+{
+    view.x = [RCTConvert RNSVGLength:json];
+}
+RCT_CUSTOM_VIEW_PROPERTY(y, id, RNSVGUse)
+{
+    view.y = [RCTConvert RNSVGLength:json];
+}
 RCT_CUSTOM_VIEW_PROPERTY(height, id, RNSVGUse)
 {
     view.height = [RCTConvert RNSVGLength:json];
